@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import csv
 import os
 import datetime
+import time
 
 #répertoire de travail
 os.chdir("C:\\Users\\Chris\\OneDrive\\Documents\\OCP2\\Exports")
@@ -44,24 +45,27 @@ for row in categories:
             print("fichier: " + nom_fichier + " initié")
         # scrapping de la page catégorie
         url = category['url']
-        ### TO DO ########
-        # gestion des pages multiples
-        ###
         reponse = requests.get(url)
         page = reponse.content
         soup = BeautifulSoup(page, "html.parser")
+        ### EN COURS ########
+        # gestion des pages multiples
+        #url_cat = str("http://books.toscrape.com/"+row['href'])[0:-10]
+        #url_index = str("http://books.toscrape.com/"+row['href'])[0:-10]+"index.html"
+        #url_page = f"{url_cat}page-{p_num}.html"
+        #p_num = 1
+        #p_max =  str.strip(soup.find("li", class_="current").get_text())[10:]
         # récupération des pages articles de la catégorie
         h3 = soup.find_all('h3')
         for link in h3:
-            page_article = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
+            url = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
             #print("Page article en cours de traitement: "+page_article)
             # scrapping de la page article
-            url=page_article
             reponse = requests.get(url)
             page = reponse.content
             soup = BeautifulSoup(page, "html.parser")
-            url_pdt = page_article
             # récupération des informations sur l'article
+            url_pdt = url
             upc = soup.find_all('td')[0].get_text()
             product_title = soup.find("li", class_="active").get_text()
             p_ttc = soup.find_all('td')[3].get_text()
@@ -76,11 +80,15 @@ for row in categories:
             img = str("http://books.toscrape.com/"+src[6:])
             # chargement des données dans le fichier d'export
             ligne = [url_pdt,upc,product_title,p_ttc,p_ht,stock,description,category,rating,img]
-            #Ecriture des infos de l'article dans le fichier de la categorie
             with open(nom_fichier, 'a',newline='', encoding="utf-8") as fichier_csv:
                 w =csv.writer(fichier_csv,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 w.writerow(ligne)
+    time.sleep(3)
         #amelioration : ajout d'une ligne nombre total de livres traités par catégories
 
 print("fin du programme")
+
+
+## Récupération du tableau contenant les informations produits
+#tab_produit = soup.find('table', {'class' : 'table table-striped'})
 
