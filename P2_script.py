@@ -51,10 +51,9 @@ for row in categories:
         ### EN COURS ########
         # gestion des pages multiples
         #url_cat = str("http://books.toscrape.com/"+row['href'])[0:-10]
-        #url_index = str("http://books.toscrape.com/"+row['href'])[0:-10]+"index.html"
         #url_page = f"{url_cat}page-{p_num}.html"
         #p_num = 1
-        #p_max =  str.strip(soup.find("li", class_="current").get_text())[10:]
+        #p_max = str.strip(soup.find("li", class_="current").get_text())[10:]
         # récupération des pages articles de la catégorie
         h3 = soup.find_all('h3')
         for link in h3:
@@ -64,7 +63,7 @@ for row in categories:
             reponse = requests.get(url)
             page = reponse.content
             soup = BeautifulSoup(page, "html.parser")
-            # récupération des informations sur l'article
+            # extraction et retraitement des informations sur l'article
             url_pdt = url
             upc = soup.find_all('td')[0].get_text()
             product_title = soup.find("li", class_="active").get_text()
@@ -78,7 +77,13 @@ for row in categories:
             #str(soup.find("p", class_="star-rating One")).count('icon-star')
             src = soup.find("img")['src']
             img = str("http://books.toscrape.com/"+src[6:])
-            # chargement des données dans le fichier d'export
+            # téléchargement de l'image
+            img_data = requests.get(img).content
+            img_file = str(upc+'.jpg')  #nom du fichier image
+            # sauvegarde du fichier image
+            with open(img_file, 'wb') as jpg:
+                jpg.write(img_data)
+            # chargement des données article dans le fichier d'export
             ligne = [url_pdt,upc,product_title,p_ttc,p_ht,stock,description,category,rating,img]
             with open(nom_fichier, 'a',newline='', encoding="utf-8") as fichier_csv:
                 w =csv.writer(fichier_csv,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
