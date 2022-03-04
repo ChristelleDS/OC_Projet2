@@ -15,56 +15,60 @@ print(str("Répertoire d'export: "+ os.getcwd()) )
 
 #variables globales
 date = datetime.datetime.today().strftime('%Y%m%d')
+#fonction parser une page html
+def get_soup(url):
+    reponse = requests.get(url)
+    page = reponse.content
+    soup = BeautifulSoup(page, "html.parser")
+    return soup
+
+# Définition des classes et leurs méthodes
+class Category:
+    def __init__(self, name, url):
+        self.name = name
+        self.url = url
+    def __createFile__(self):
+        en_tete = ["product_page_url", "universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description", "category","review_rating","image_url"]
+        nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
+        with open(nom_fichier, 'w', newline='', encoding="utf-8") as fichier_csv:
+            writer = csv.writer(fichier_csv, delimiter=',')
+            writer.writerow(en_tete)
+            print("fichier d'export initié pour la catégorie " +self.name)
+            # amelioration : création d'un repo pour chaque catégorie afin d'y stocker le fichier export ainsi que les images
+    def __createRepo__(self):
+        nom_repo = c.name+"_images"
+        os.makedirs( os.getcwd()+'/'+nom_repo)
+    def __insertInFile__(self):
+        nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
+        with open(nom_fichier, 'a', newline='',encoding="utf-8") as fichier_csv:
+            ligne = [url_pdt,upc,product_title,p_ttc,p_ht,stock,description,category,rating,img]
+            w =csv.writer(fichier_csv,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            w.writerow(ligne)
+
 
 ## HOMEPAGE : récupération des catégories
-url= 'http://books.toscrape.com'
-reponse = requests.get(url)
-page = reponse.content
-soup = BeautifulSoup(page, "html.parser")
-
-categories = soup.find("ul", class_="nav nav-list").find_all('a')
+url_main= 'http://books.toscrape.com'
+categories = get_soup(url_main).find("ul", class_="nav nav-list").find_all('a')
 
 for row in categories:
-    category= dict()
-    category_name = row.string
     # bypasser la categorie parente "books"
+    category_name = row.string   
     if str.strip(category_name) == "Books":
         continue
     else :
         #enregistrer la catégorie
-        category['url'] = str("http://books.toscrape.com/"+row['href']) 
-        category['name'] = str.strip(category_name)
-        print("Début de traitement de la catégorie : "+category['name'])
+        c=Category(str.strip(category_name), str("http://books.toscrape.com/"+row['href']))
         #initialisation du fichier d'export pour la catégorie
-        #amelioration : vérifier existence du fichier avant création
-        nom_fichier = str("f_export_"+ category['name'] +"_"+ date +".csv")
-        en_tete = ["product_page_url", "universal_ product_code","title","price_including_tax","price_excluding_tax","number_available", "product_description", "category","review_rating","image_url"]
-        with open(nom_fichier, 'w', newline='', encoding="utf-8") as fichier_csv:
-            writer = csv.writer(fichier_csv, delimiter=',')
-            writer.writerow(en_tete)
-            print("fichier: " + nom_fichier + " initié")
-        # scrapping de la page catégorie
-        url = category['url']
-        reponse = requests.get(url)
-        page = reponse.content
-        soup = BeautifulSoup(page, "html.parser")
-        ### EN COURS ########
-        # gestion des pages multiples
-        #url_cat = str("http://books.toscrape.com/"+row['href'])[0:-10]
-        #url_page = f"{url_cat}page-{p_num}.html"
-        #p_num = 1
-        #p_max = str.strip(soup.find("li", class_="current").get_text())[10:]
+        c.__createFile__()
         # récupération des pages articles de la catégorie
-        h3 = soup.find_all('h3')
-        for link in h3:
-            url = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
-            #print("Page article en cours de traitement: "+page_article)
-            # scrapping de la page article
-            reponse = requests.get(url)
-            page = reponse.content
-            soup = BeautifulSoup(page, "html.parser")
+        links = []
+        links = get_soup(c.url).find_all('h3')
+        print("récupération des articles")
+        for link in links:
+            #scrapping de la page
+            url_pdt = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
+            soup = get_soup(url_pdt)
             # extraction et retraitement des informations sur l'article
-            url_pdt = url
             upc = soup.find_all('td')[0].get_text()
             product_title = soup.find("li", class_="active").get_text()
             p_ttc = soup.find_all('td')[3].get_text()
@@ -72,7 +76,7 @@ for row in categories:
             stock = str.strip(soup.find("p", class_="instock availability").get_text())
             desc =  soup.find_all('p')[3].get_text()
             description = desc.replace(';',',')
-            category = str.strip(category_name) #category['name']
+            category = str.strip(c.name) #category['name']
             rating = " a retravailler " 
             #str(soup.find("p", class_="star-rating One")).count('icon-star')
             src = soup.find("img")['src']
@@ -84,16 +88,6 @@ for row in categories:
             with open(img_file, 'wb') as jpg:
                 jpg.write(img_data)
             # chargement des données article dans le fichier d'export
-            ligne = [url_pdt,upc,product_title,p_ttc,p_ht,stock,description,category,rating,img]
-            with open(nom_fichier, 'a',newline='', encoding="utf-8") as fichier_csv:
-                w =csv.writer(fichier_csv,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                w.writerow(ligne)
-    time.sleep(3)
-        #amelioration : ajout d'une ligne nombre total de livres traités par catégories
-
+            c.__insertInFile__()
+    time.sleep(2)
 print("fin du programme")
-
-
-## Récupération du tableau contenant les informations produits
-#tab_produit = soup.find('table', {'class' : 'table table-striped'})
-
