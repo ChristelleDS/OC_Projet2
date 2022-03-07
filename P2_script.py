@@ -36,7 +36,7 @@ class Category:
             print("fichier d'export initié pour la catégorie " +self.name)
             # amelioration : création d'un repo pour chaque catégorie afin d'y stocker le fichier export ainsi que les images
     def __createRepo__(self):
-        nom_repo = c.name+"_images"
+        nom_repo = self.name+"_images"
         os.makedirs( os.getcwd()+'/'+nom_repo)
     def __insertInFile__(self):
         nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
@@ -59,35 +59,60 @@ for row in categories:
         #enregistrer la catégorie
         c=Category(str.strip(category_name), str("http://books.toscrape.com/"+row['href']))
         #initialisation du fichier d'export pour la catégorie
-        c.__createFile__()
-        # récupération des pages articles de la catégorie
-        links = []
-        links = get_soup(c.url).find_all('h3')
-        print("récupération des articles")
-        for link in links:
-            #scrapping de la page
-            url_pdt = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
-            soup = get_soup(url_pdt)
-            # extraction et retraitement des informations sur l'article
-            upc = soup.find_all('td')[0].get_text()
-            product_title = soup.find("li", class_="active").get_text()
-            p_ttc = soup.find_all('td')[3].get_text()
-            p_ht = soup.find_all('td')[2].get_text()
-            stock = str.strip(soup.find("p", class_="instock availability").get_text())
-            desc =  soup.find_all('p')[3].get_text()
-            description = desc.replace(';',',')
-            category = str.strip(c.name) #category['name']
-            rating = " a retravailler " 
-            #str(soup.find("p", class_="star-rating One")).count('icon-star')
-            src = soup.find("img")['src']
-            img = str("http://books.toscrape.com/"+src[6:])
-            # téléchargement de l'image
-            img_data = requests.get(img).content
-            img_file = str(upc+'.jpg')  #nom du fichier image
-            # sauvegarde du fichier image
-            with open(img_file, 'wb') as jpg:
-                jpg.write(img_data)
-            # chargement des données article dans le fichier d'export
-            c.__insertInFile__()
-    time.sleep(2)
+        c.__createFile__()        
+        try:  #test si existence de plusieurs pages pour la categorie
+            next = get_soup(c.url).find("li", class_="next").find('a').get('href')
+            print("PLUSIEURS PAGES")
+            url_cat = c.url[0:-10]
+            #combien de page?
+            p_max = int(str.strip(get_soup(c.url).find("li", class_="current").get_text())[10:])
+            i = 2
+            #récupération de l'url de chaque page
+            while i <= p_max:
+                c=Category(c.name, f"{url_cat}page-{i}.html")
+                #c.append(f"{url_cat}page-{i}.html")
+                #print(links)
+                i = i+1
+        except AttributeError:
+            print("PAGE UNIQUE")
+        finally:
+            print("récupération des articles")
+            links = []
+            links = get_soup(c.url).find_all('h3')
+            for link in links:
+                #scrapping de la page
+                url_pdt = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
+                soup = get_soup(url_pdt)
+                # extraction et retraitement des informations sur l'article
+                upc = soup.find_all('td')[0].get_text()
+                product_title = soup.find("li", class_="active").get_text()
+                p_ttc = soup.find_all('td')[3].get_text()
+                p_ht = soup.find_all('td')[2].get_text()
+                stock = str.strip(soup.find("p", class_="instock availability").get_text())
+                desc =  soup.find_all('p')[3].get_text()
+                description = desc.replace(';',',')
+                category = str.strip(c.name) #category['name']
+                rating =""
+                soup_rating =str(soup.find('p', {'class' : 'star-rating'}))[22:25]
+                if soup_rating == "One":
+                    rating = 1
+                elif soup_rating == "Two":
+                    rating = 2
+                elif soup_rating == "Thr":
+                    rating = 3
+                elif soup_rating == "Fou":
+                    rating = 4
+                elif soup_rating == "Fiv":
+                    rating = 5
+                src = soup.find("img")['src']
+                img = str("http://books.toscrape.com/"+src[6:])
+                # téléchargement de l'image
+                img_data = requests.get(img).content
+                img_file = str(upc+'.jpg')  #nom du fichier image
+                # sauvegarde du fichier image
+                with open(img_file, 'wb') as jpg:
+                    jpg.write(img_data)
+                # chargement des données article dans le fichier d'export
+                c.__insertInFile__()
+
 print("fin du programme")
