@@ -111,4 +111,3 @@ for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
                 os.chdir(os.pardir)
 
 print("fin du programme")
-
