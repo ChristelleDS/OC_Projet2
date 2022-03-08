@@ -6,15 +6,17 @@ import os
 import datetime
 import time
 
-#répertoire de travail
-os.chdir("C:\\Users\\Chris\\OneDrive\\Documents\\OCP2\\Exports")
-print(str("Répertoire d'export: "+ os.getcwd()) )
-#recupérer la valeur du repo dans un fichier de param?
-
-#Amelioration : création auto d'un répertoire d'export pour les fichiers du jour
-
-#variables globales
 date = datetime.datetime.today().strftime('%Y%m%d')
+
+repo_day = str("./Exports/"+date)
+if not os.path.exists(repo_day):
+    os.makedirs(repo_day)
+
+if not os.path.exists(repo_day+"/Images"):
+    os.makedirs(repo_day+"/Images")
+
+os.chdir(repo_day)
+print(str("Répertoire d'export: "+ os.getcwd()))
 
 #fonction parser une page html
 def get_soup(url):
@@ -35,9 +37,6 @@ class Category:
             writer = csv.writer(fichier_csv, delimiter=',')
             writer.writerow(en_tete)
             print("fichier d'export initié pour la catégorie " +self.name)
-    def __createRepo__(self):
-        nom_repo = self.name+"_images"
-        os.makedirs( os.getcwd()+'/'+nom_repo)
     def __insertInFile__(self):
         nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
         with open(nom_fichier, 'a', newline='',encoding="utf-8") as fichier_csv:
@@ -106,10 +105,10 @@ for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
                 # téléchargement et enregistrement de l'image
                 img_data = requests.get(img).content
                 img_file = str(c.name+"_"+upc+'.jpg')  #nom du fichier image
+                os.chdir("./Images")
                 with open(img_file, 'wb') as jpg:
                     jpg.write(img_data)
-
-        time.sleep(3)
+                os.chdir(os.pardir)
 
 print("fin du programme")
 
