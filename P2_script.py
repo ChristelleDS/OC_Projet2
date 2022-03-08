@@ -15,6 +15,7 @@ print(str("Répertoire d'export: "+ os.getcwd()) )
 
 #variables globales
 date = datetime.datetime.today().strftime('%Y%m%d')
+
 #fonction parser une page html
 def get_soup(url):
     reponse = requests.get(url)
@@ -34,7 +35,6 @@ class Category:
             writer = csv.writer(fichier_csv, delimiter=',')
             writer.writerow(en_tete)
             print("fichier d'export initié pour la catégorie " +self.name)
-            # amelioration : création d'un repo pour chaque catégorie afin d'y stocker le fichier export ainsi que les images
     def __createRepo__(self):
         nom_repo = self.name+"_images"
         os.makedirs( os.getcwd()+'/'+nom_repo)
@@ -48,42 +48,37 @@ class Category:
 
 ## HOMEPAGE : récupération des catégories
 url_main= 'http://books.toscrape.com'
-categories = get_soup(url_main).find("ul", class_="nav nav-list").find_all('a')
 
-for row in categories:
-    # bypasser la categorie parente "books"
-    category_name = row.string   
-    if str.strip(category_name) == "Books":
+#Récupération des pages catégories
+for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
+    category_name = row.string
+    c=Category(str.strip(category_name), str("http://books.toscrape.com/"+row['href']))
+    if str.strip(category_name) == "Books":  # ne rien faire pour la categorie parente "books"
         continue
     else :
-        #enregistrer la catégorie
-        c=Category(str.strip(category_name), str("http://books.toscrape.com/"+row['href']))
-        #initialisation du fichier d'export pour la catégorie
-        c.__createFile__()        
-        try:  #test si existence de plusieurs pages pour la categorie
+        c.__createFile__()       #initialisation du fichier d'export pour la catégorie 
+        #enregistrer la page index de la catégorie dans le dictionnaire pages_cat
+        pages_cat=[]
+        pages_cat.append(c.url)
+        #gestion des catégories de plusieurs pages
+        try:  # présence d'un bouton "next"
             next = get_soup(c.url).find("li", class_="next").find('a').get('href')
-            print("PLUSIEURS PAGES")
             url_cat = c.url[0:-10]
-            #combien de page?
-            p_max = int(str.strip(get_soup(c.url).find("li", class_="current").get_text())[10:])
+            p_max = int(str.strip(get_soup(c.url).find("li", class_="current").get_text())[10:])  #nb de pages
             i = 2
-            #récupération de l'url de chaque page
+            #enregistrement des url des pages 2 et +
             while i <= p_max:
-                c=Category(c.name, f"{url_cat}page-{i}.html")
-                #c.append(f"{url_cat}page-{i}.html")
-                #print(links)
+                pages_cat.append(f"{url_cat}page-{i}.html")
                 i = i+1
-        except AttributeError:
-            print("PAGE UNIQUE")
-        finally:
-            print("récupération des articles")
+        except AttributeError:  #pas de bouton "next" = une seule page
+            pass
+        for page in pages_cat :  # parsing des pages catégories pour retrouver les articles
             links = []
-            links = get_soup(c.url).find_all('h3')
-            for link in links:
-                #scrapping de la page
+            links = get_soup(page).find_all('h3') 
+            for link in links:  #pour chaque article: parser la page
                 url_pdt = str("http://books.toscrape.com/catalogue/")+str(link.find('a').get('href'))[9:]
                 soup = get_soup(url_pdt)
-                # extraction et retraitement des informations sur l'article
+                #extraire les informations recherchées:
                 upc = soup.find_all('td')[0].get_text()
                 product_title = soup.find("li", class_="active").get_text()
                 p_ttc = soup.find_all('td')[3].get_text()
@@ -91,7 +86,7 @@ for row in categories:
                 stock = str.strip(soup.find("p", class_="instock availability").get_text())
                 desc =  soup.find_all('p')[3].get_text()
                 description = desc.replace(';',',')
-                category = str.strip(c.name) #category['name']
+                category = c.name
                 rating =""
                 soup_rating =str(soup.find('p', {'class' : 'star-rating'}))[22:25]
                 if soup_rating == "One":
@@ -106,13 +101,15 @@ for row in categories:
                     rating = 5
                 src = soup.find("img")['src']
                 img = str("http://books.toscrape.com/"+src[6:])
-                # téléchargement de l'image
+                # chargement des données dans le fichier d'export de la catégorie
+                c.__insertInFile__()
+                # téléchargement et enregistrement de l'image
                 img_data = requests.get(img).content
-                img_file = str(upc+'.jpg')  #nom du fichier image
-                # sauvegarde du fichier image
+                img_file = str(c.name+"_"+upc+'.jpg')  #nom du fichier image
                 with open(img_file, 'wb') as jpg:
                     jpg.write(img_data)
-                # chargement des données article dans le fichier d'export
-                c.__insertInFile__()
+
+        time.sleep(3)
 
 print("fin du programme")
+
