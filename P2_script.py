@@ -83,7 +83,7 @@ for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
                 p_ttc = soup.find_all('td')[3].get_text()
                 p_ht = soup.find_all('td')[2].get_text()
                 stock = str.strip(soup.find("p", class_="instock availability").get_text())
-                desc =  soup.find_all('p')[3].get_text()
+                desc =  soup.find_all('p')[3].get_text().strip()
                 description = desc.replace(';',',')
                 category = c.name
                 rating =""
