@@ -18,6 +18,6 @@ source env/bin/activate
 # Installation des modules requirements:
 pip install -r requirements.txt
 # Exécution du programme d'export
-python P2_script.py
+python P2_script_1.1.0.py
 
 
