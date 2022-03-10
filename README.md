@@ -5,11 +5,6 @@ Se positionner dans le répertoire souhaité et y déposer les livrables
 
 cd <répertoire>
 
-# vérifier le contenu : 
-le répertoire doit contenir les fichiers P2_script.py , requirements.txt
-
-ls
-
 # Création et activation de l'environnement virtuel
 python -m venv env
 
