@@ -30,14 +30,14 @@ class Category:
     def __init__(self, name, url):
         self.name = name
         self.url = url
-    def __createFile__(self):
+    def createFile(self):
         en_tete = ["product_page_url", "universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description", "category","review_rating","image_url"]
         nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
         with open(nom_fichier, 'w', newline='', encoding="utf-8") as fichier_csv:
             writer = csv.writer(fichier_csv, delimiter=',')
             writer.writerow(en_tete)
             print("fichier d'export initié pour la catégorie " +self.name)
-    def __insertInFile__(self):
+    def insertInFile(self):
         nom_fichier = str("f_export_"+ c.name +"_"+ date +".csv")
         with open(nom_fichier, 'a', newline='',encoding="utf-8") as fichier_csv:
             ligne = [url_pdt,upc,product_title,p_ttc,p_ht,stock,description,category,rating,img]
@@ -55,7 +55,7 @@ for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
     if str.strip(category_name) == "Books":  # ne rien faire pour la categorie parente "books"
         continue
     else :
-        c.__createFile__()       #initialisation du fichier d'export pour la catégorie 
+        c.createFile()       #initialisation du fichier d'export pour la catégorie 
         #enregistrer la page index de la catégorie dans le dictionnaire pages_cat
         pages_cat=[]
         pages_cat.append(c.url)
@@ -101,7 +101,7 @@ for row in get_soup(url_main).find("ul", class_="nav nav-list").find_all('a'):
                 src = soup.find("img")['src']
                 img = str("http://books.toscrape.com/"+src[6:])
                 # chargement des données dans le fichier d'export de la catégorie
-                c.__insertInFile__()
+                c.insertInFile()
                 # téléchargement et enregistrement de l'image
                 img_data = requests.get(img).content
                 img_file = str(c.name+"_"+upc+'.jpg')  #nom du fichier image
